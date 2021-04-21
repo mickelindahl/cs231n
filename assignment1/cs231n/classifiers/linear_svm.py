@@ -93,8 +93,7 @@ def svm_loss_vectorized(W, X, y, reg):
     scores = X.dot(W)
     correct_class_score = scores[range(num_train), y]
 
-    L = scores.T - correct_class_score + 1
-    L = L.T
+    L = scores - np.array([correct_class_score]).T + 1
     L[L < 0] = 0
     L[range(num_train), y] = 0  # i==y should be zero
 
@@ -115,14 +114,11 @@ def svm_loss_vectorized(W, X, y, reg):
     #############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    margin = (L > 0).astype(int)
-    sum_class_over_margin = np.sum(margin, axis=1)
+    scale = (L > 0).astype(int)
+    sum_class_over_margin = np.sum(scale, axis=1)
+    scale[range(num_train), y]=-sum_class_over_margin
 
-    count_y = np.zeros(L.shape)
-    count_y[range(0, count_y.shape[0]), y] = sum_class_over_margin
-    count_y = count_y * (count_y > 1)
-
-    dW = X.T.dot(margin) - X.T.dot(count_y)
+    dW = X.T.dot(scale)
     dW /= num_train
     dW += reg * 2 * W
 

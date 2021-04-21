@@ -71,6 +71,7 @@ class TwoLayerNet(object):
         W1, b1 = self.params['W1'], self.params['b1']
         W2, b2 = self.params['W2'], self.params['b2']
         N, D = X.shape
+        H, C = W2.shape
 
         # Compute the forward pass
         scores = None
@@ -81,9 +82,22 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        H1 = np.max(0, W1.dot(X) + b1)
-        # L1[L1 < 0] = 0  # max(0, W1*x)
-        scores = W2.dot(H1) + b2
+        # C - number of classes
+        # H - number of hidden nodes
+        # D - number of input features
+        # N - number of training examples
+
+        # X NxD
+        # W1 DxH
+        # z NxH (NxD * DxH). Thus each row is an example with H number of output values
+        z = X.dot(W1) + b1
+
+        # Perform relu nonlinear transform
+        relu_hidden = np.maximum(0, z)
+
+        # W2 HxC
+        # scores NxC (NxH * HxC). Raw output scores from neural network
+        scores = relu_hidden.dot(W2) + b2  # with hidden dim NxH and W2 dim HxC then dim scores = NxC
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -101,12 +115,18 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        scores += 1 - scores[(range(N)), y]
-        scores[scores < 0] = 0
+        # Apply softmax
+        softmax = np.exp(scores)
 
-        loss = np.sum(scores) / N
+        # Normalize to get probabilities
+        softmax /= np.array([np.sum(softmax, axis=1)]).T
 
-        # pass
+        # Calculate loss
+        loss = -np.log(softmax[range(N), y])
+        loss = np.mean(loss)
+
+        # Add regularization to the loss.
+        loss += reg * np.sum(W1 * W1) + reg * np.sum(W2 * W2)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -119,9 +139,71 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        # pass
+        # Output hidden layer
+        # dL_dscores = NxC
+        dL_dscores = softmax.copy()  # dim = NxC
 
-        # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+        # Correct gradient for correct classes
+        # L = sum(L_i) i=1...N
+        # L_i = -log(p_yi)
+        # p_yi = z_yi/sum(z_j) j=0..C (softmax)
+        # z_j = e^s_j
+        # dL_i/ds = dL_dscores = p_i if i!=y_i else p_i=1-p_y
+        dL_dscores[range(N), y] -= 1
+
+        # Done pre-emptily such that W2 does not a
+        # dL_dscores /= N
+
+        # s = q + b2
+        # q = W2*r
+        # ds/dW2 = r = max(0, W1*x + b1) = relu_hidden
+        # dL/dW2 =  transpose(ds/dW2) * dL/ds. transpose(NxH) * N*C -> HxC
+        grads['W2'] = relu_hidden.T.dot(dL_dscores)
+
+        # Need to take average W2 jacobian over number of examples
+        grads['W2'] /= N
+
+        # And add regularization
+        grads['W2'] += 2 * reg * W2
+
+        # ds/db = [1,...,1] dim Cx1
+        grads['b2'] = dL_dscores.T.dot(np.ones((N)))  # np.sum(dsoftmax, axis=0)
+
+        # Normailze over experiments
+        grads['b2'] /= N
+
+        # r = max(0, u)
+        # u = v+b1
+        # v = W1*X
+        # dr/du = ones(u.shape) * u>0
+        # du/W1 = X
+        # ds/dr = W2
+        # dL/dW1 = dL/ds * ds/dr * dr/du * du/W1
+        # = dL_dscores . W2 * ones(u.shape) * u>0 . X
+        # (NxC transpose(HxC) * NxH . NxD
+        # NxH * HxD . NxD
+        # transpore(NxD) . transposeNxH = DxH
+        dhidden = dL_dscores.dot(W2.T)
+
+        # Chain rule here f=W1*x+b1, dL/dW=dL/df * df/dW1
+        dhidden_relu = (relu_hidden > 0) * dhidden
+
+        # dom X=NxD X.T dim DxN and dhhidden_relu dim NxH. So dim grad W2=DxH
+        grads['W1'] = X.T.dot(dhidden_relu)
+
+        # Take average W1 jacobian over number of examples
+        grads['W1'] /= N
+
+        # And add regularization
+        grads['W1'] += reg * 2 * W1
+
+        # print(grads['W1'].shape, X.shape, dhidden_relu.shape)
+        # du/db1 = [1,...,1] # Hx1
+        # dL/db1 = dL/ds * ds/dr * dr/du * du/db2
+        grads['b1'] = dhidden_relu.T.dot(np.ones((N)))  # np.sum(dhidden_relu, axis=0)
+
+        # Take average of gradient (should I do this?)
+        grads['b1'] /= N
 
         return loss, grads
 
@@ -164,7 +246,9 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            sample = np.random.choice(num_train, batch_size, replace=True)
+            X_batch = X[sample]
+            y_batch = y[sample]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -180,7 +264,8 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            for key in ['b1', 'b2', 'W1', 'W2']:
+                self.params[key] -= grads[key] * learning_rate
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -194,6 +279,9 @@ class TwoLayerNet(object):
                 val_acc = (self.predict(X_val) == y_val).mean()
                 train_acc_history.append(train_acc)
                 val_acc_history.append(val_acc)
+
+                if verbose:
+                    print('train_acc %f / val_acc %f' % (train_acc, val_acc))
 
                 # Decay learning rate
                 learning_rate *= learning_rate_decay
@@ -226,7 +314,7 @@ class TwoLayerNet(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        y_pred = np.argmax(self.loss(X), axis=1)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 

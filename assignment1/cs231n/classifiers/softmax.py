@@ -93,12 +93,14 @@ def softmax_loss_vectorized(W, X, y, reg):
     loss = -np.log(scores[range(num_train), y])
     loss = np.mean(loss)
 
+    dscores = scores.copy()
+
     # Correct gradient for correct classes
-    scores[range(num_train), y] -= 1
+    dscores[range(num_train), y] -= 1
 
     # print(scores.shape, X.shape)
 
-    dW = X.T.dot(scores)
+    dW = X.T.dot(dscores)
 
     # Take average over number of training data
     dW /= num_train
