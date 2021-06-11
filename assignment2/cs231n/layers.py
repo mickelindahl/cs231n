@@ -252,8 +252,6 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        mean = np.mean(x, axis=0)
-
         # q = x - mean  # 1
         # qsq = q * q  # 2
         # var = np.sum(qsq, axis=0) / N
@@ -278,7 +276,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # Trick for division float to increase precision!!
         vareps = var + eps
         inden = 1.0 / np.sqrt(vareps)
-        x_hat = (x - m)*inden
+        x_hat = (x - m) * inden
 
         # Allow distribution to shift
         out = gamma * x_hat + beta
@@ -425,20 +423,6 @@ def batchnorm_backward(dout, cache):
     dgamma = dL_dgamma
     dbeta = dL_dbeta
 
-    # dbeta = dout.sum(axis=0)
-    # dgamma = np.sum(x_norm * dout, axis=0)
-
-    # dx_norm = gamma * dout  # 7
-    # dq = invden * dx_norm  # 6
-    # dinvden = np.sum(q * dx_norm, axis=0)  # 6
-    # dden = (-1.0 / (den ** 2)) * dinvden  # 5
-    # dvareps = (1.0) / (2.0 * np.sqrt(vareps)) * dden  # 4
-    # dqsq = 1.0 / N * dvareps  # 3
-    # dq += 2.0 * q * dqsq  # 2
-    # dmean = np.sum(dq, axis=0) / N
-    # dx = dq - dmean
-    # #################
-
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -446,221 +430,6 @@ def batchnorm_backward(dout, cache):
 
     return dx, dgamma, dbeta
 
-# def batchnorm_forward(x, gamma, beta, bn_param):
-#     """
-#     Forward pass for batch normalization.
-#     During training the sample mean and (uncorrected) sample variance are
-#     computed from minibatch statistics and used to normalize the incoming data.
-#     During training we also keep an exponentially decaying running mean of the
-#     mean and variance of each feature, and these averages are used to normalize
-#     data at test-time.
-#     At each timestep we update the running averages for mean and variance using
-#     an exponential decay based on the momentum parameter:
-#     running_mean = momentum * running_mean + (1 - momentum) * sample_mean
-#     running_var = momentum * running_var + (1 - momentum) * sample_var
-#     Note that the batch normalization paper suggests a different test-time
-#     behavior: they compute sample mean and variance for each feature using a
-#     large number of training images rather than using a running average. For
-#     this implementation we have chosen to use running averages instead since
-#     they do not require an additional estimation step; the torch7
-#     implementation of batch normalization also uses running averages.
-#     Input:
-#     - x: Data of shape (N, D)
-#     - gamma: Scale parameter of shape (D,)
-#     - beta: Shift paremeter of shape (D,)
-#     - bn_param: Dictionary with the following keys:
-#       - mode: 'train' or 'test'; required
-#       - eps: Constant for numeric stability
-#       - momentum: Constant for running mean / variance.
-#       - running_mean: Array of shape (D,) giving running mean of features
-#       - running_var Array of shape (D,) giving running variance of features
-#     Returns a tuple of:
-#     - out: of shape (N, D)
-#     - cache: A tuple of values needed in the backward pass
-#     """
-#     mode = bn_param['mode']
-#     eps = bn_param.get('eps', 1e-5)
-#     momentum = bn_param.get('momentum', 0.9)
-#
-#     N, D = x.shape
-#     running_mean = bn_param.get('running_mean', np.zeros(D, dtype=x.dtype))
-#     running_var = bn_param.get('running_var', np.zeros(D, dtype=x.dtype))
-#
-#     out, cache = None, None
-#     if mode == 'train':
-#         #######################################################################
-#         # TODO: Implement the training-time forward pass for batch norm.      #
-#         # Use minibatch statistics to compute the mean and variance, use      #
-#         # these statistics to normalize the incoming data, and scale and      #
-#         # shift the normalized data using gamma and beta.                     #
-#         #                                                                     #
-#         # You should store the output in the variable out. Any intermediates  #
-#         # that you need for the backward pass should be stored in the cache   #
-#         # variable.                                                           #
-#         #                                                                     #
-#         # You should also use your computed sample mean and variance together #
-#         # with the momentum variable to update the running mean and running   #
-#         # variance, storing your result in the running_mean and running_var   #
-#         # variables.                                                          #
-#         #######################################################################
-#         mean = np.mean(x, axis=0)
-#
-#         q = x - mean  # 1
-#         qsq = q * q  # 2
-#         var = np.sum(qsq, axis=0) / N
-#         vareps = var + eps  # 3
-#         den = np.sqrt(vareps)  # 4
-#         invden = 1.0 / den  # 5
-#         x_norm = q * invden  # 6
-#         out = x_norm * gamma + beta  # 7
-#
-#         running_mean = momentum * running_mean + (1.0 - momentum) * mean
-#         running_var = momentum * running_var + (1.0 - momentum) * var
-#
-#         cache = (x, gamma, beta, q, qsq, vareps, den, invden, x_norm)
-#         #######################################################################
-#         #                           END OF YOUR CODE                          #
-#         #######################################################################
-#     elif mode == 'test':
-#         #######################################################################
-#         # TODO: Implement the test-time forward pass for batch normalization. #
-#         # Use the running mean and variance to normalize the incoming data,   #
-#         # then scale and shift the normalized data using gamma and beta.      #
-#         # Store the result in the out variable.                               #
-#         #######################################################################
-#         out = (x - running_mean) / np.sqrt(running_var + eps)
-#         out = out * gamma + beta
-#         #######################################################################
-#         #                          END OF YOUR CODE                           #
-#         #######################################################################
-#     else:
-#         raise ValueError('Invalid forward batchnorm mode "%s"' % mode)
-#
-#     # Store the updated running means back into bn_param
-#     bn_param['running_mean'] = running_mean
-#     bn_param['running_var'] = running_var
-#
-#     return out, cache
-#
-#
-# def batchnorm_backward(dout, cache):
-#     """
-#     Backward pass for batch normalization.
-#     For this implementation, you should write out a computation graph for
-#     batch normalization on paper and propagate gradients backward through
-#     intermediate nodes.
-#     Inputs:
-#     - dout: Upstream derivatives, of shape (N, D)
-#     - cache: Variable of intermediates from batchnorm_forward.
-#     Returns a tuple of:
-#     - dx: Gradient with respect to inputs x, of shape (N, D)
-#     - dgamma: Gradient with respect to scale parameter gamma, of shape (D,)
-#     - dbeta: Gradient with respect to shift parameter beta, of shape (D,)
-#     """
-#     dx, dgamma, dbeta = None, None, None
-#     ###########################################################################
-#     # TODO: Implement the backward pass for batch normalization. Store the    #
-#     # results in the dx, dgamma, and dbeta variables.                         #
-#     ###########################################################################
-#     N, D = dout.shape
-#     x, gamma, beta, q, qsq, vareps, den, invden, x_norm = cache
-#
-#     dbeta = dout.sum(axis=0)
-#     dgamma = np.sum(x_norm * dout, axis=0)
-#
-#     dx_norm = gamma * dout  # 7
-#     dq = invden * dx_norm  # 6
-#     dinvden = np.sum(q * dx_norm, axis=0)  # 6
-#     dden = (-1.0 / (den ** 2)) * dinvden  # 5
-#     dvareps = (1.0) / (2.0 * np.sqrt(vareps)) * dden  # 4
-#     dqsq = 1.0 / N * dvareps  # 3
-#     dq += 2.0 * q * dqsq  # 2
-#     dmean = np.sum(dq, axis=0) / N
-#     dx = dq - dmean
-#     ###########################################################################
-#     #                             END OF YOUR CODE                            #
-#     ###########################################################################
-#
-#     return dx, dgamma, dbeta
-
-# array([[-0.00310319,  0.00305468, -0.00156246,  0.17251307,  0.01388029],
-#        [ 0.01147762, -0.10800884, -0.01112564, -0.02021632, -0.02098085],
-#        [-0.01682492, -0.01106847, -0.00384286,  0.13581055, -0.04108612],
-#        [ 0.00845049,  0.11602263,  0.01653096, -0.2881073 ,  0.04818669]])
-# array([[-0.00310319,  0.00305468, -0.00156246,  0.17251307,  0.01388029],
-#        [ 0.01147762, -0.10800884, -0.01112564, -0.02021632, -0.02098085],
-#        [-0.01682492, -0.01106847, -0.00384286,  0.13581055, -0.04108612],
-#        [ 0.00845049,  0.11602263,  0.01653096, -0.2881073 ,  0.04818669]])
-# array([2.29048278, 1.39248907, 2.93350569, 0.98234546, 2.08326113])
-# array([2.29048278, 1.39248907, 2.93350569, 0.98234546, 2.08326113])
-# array([ 0.08461601,  0.59073617,  1.2668311 , -1.75428014, -0.80317214])
-# array([ 0.08461601,  0.59073617,  1.2668311 , -1.75428014, -0.80317214])
-# dx error:  1.6674604875341426e-09
-# dgamma error:  7.417225040694815e-13
-# dbeta error:  2.379446949959628e-12
-
-# array([[-0.00310319,  0.00305468, -0.00156246,  0.17251307,  0.01388029],
-#        [ 0.01147762, -0.10800884, -0.01112564, -0.02021632, -0.02098085],
-#        [-0.01682492, -0.01106847, -0.00384286,  0.13581055, -0.04108612],
-#        [ 0.00845049,  0.11602263,  0.01653096, -0.2881073 ,  0.04818669]])
-# array([[-0.0031032 ,  0.00305466, -0.00156246,  0.17251311,  0.0138803 ],
-#        [ 0.01147763, -0.10800888, -0.01112564, -0.02021631, -0.02098084],
-#        [-0.01682493, -0.01106847, -0.00384286,  0.13581057, -0.04108615],
-#        [ 0.00845049,  0.11602269,  0.01653096, -0.28810737,  0.04818669]])
-# array([2.29048278, 1.39248907, 2.93350569, 0.98234546, 2.08326113])
-# array([2.29048278, 1.39248907, 2.93350569, 0.98234546, 2.08326113])
-# array([ 0.08461601,  0.59073617,  1.2668311 , -1.75428014, -0.80317214])
-# array([ 0.08461601,  0.59073617,  1.2668311 , -1.75428014, -0.80317214])
-# dx error:  3.6789253252687406e-06
-# dgamma error:  7.417225040694815e-13
-# dbeta error:  2.379446949959628e-12
-
-# Before batch normalization:
-#   means: [ -2.3814598  -13.18038246   1.91780462]
-#   stds:  [27.18502186 34.21455511 37.68611762]
-#
-# After batch normalization (gamma=1, beta=0)
-#   means: [5.99520433e-17 6.93889390e-17 8.32667268e-19]
-#   stds:  [0.99999999 1.         1.        ]
-#
-# After batch normalization (gamma= [1. 2. 3.] , beta= [11. 12. 13.] )
-#   means: [11. 12. 13.]
-#   stds:  [0.99999999 1.99999999 2.99999999]
-
-# def batchnorm_backward_alt(dout, cache):
-#     """
-#     Alternative backward pass for batch normalization.
-#     For this implementation you should work out the derivatives for the batch
-#     normalizaton backward pass on paper and simplify as much as possible. You
-#     should be able to derive a simple expression for the backward pass.
-#     Note: This implementation should expect to receive the same cache variable
-#     as batchnorm_backward, but might not use all of the values in the cache.
-#     Inputs / outputs: Same as batchnorm_backward
-#     """
-#     dx, dgamma, dbeta = None, None, None
-#     ###########################################################################
-#     # TODO: Implement the backward pass for batch normalization. Store the    #
-#     # results in the dx, dgamma, and dbeta variables.                         #
-#     #                                                                         #
-#     # After computing the gradient with respect to the centered inputs, you   #
-#     # should be able to compute gradients with respect to the inputs in a     #
-#     # single statement; our implementation fits on a single 80-character line.#
-#     ###########################################################################
-#     N, D = dout.shape
-#     x, gamma, beta, q, qsq, vareps, den, invden, x_norm = cache
-#
-#     dbeta = dout.sum(axis=0)
-#     dgamma = np.sum(x_norm * dout, axis=0)
-#
-#     dx_norm = gamma * dout
-#     dldvar = np.sum(dx_norm*q*(invden**3), axis=0)*(-1.0/2.0)
-#     dldmean = np.sum(dx_norm, axis=0)*(-1.0/den) + dldvar * (-2.0/N * np.sum(q, axis=0))
-#     dx = dx_norm * invden + dldvar * 2.0 * q / N + dldmean / N
-#     ###########################################################################
-#     #                             END OF YOUR CODE                            #
-#     ###########################################################################
-#
-#     return dx, dgamma, dbeta
 
 def batchnorm_backward_alt(dout, cache):
     """Alternative backward pass for batch normalization.
@@ -689,12 +458,8 @@ def batchnorm_backward_alt(dout, cache):
     x, x_hat, m, var, gamma, vareps = cache
 
     sigma = np.sqrt(vareps)
-    r = (x - m)
-    q = 1.0 / sigma
 
     N, D = x.shape
-
-    dx_hat = x
 
     dL_dy = dout
 
@@ -702,30 +467,27 @@ def batchnorm_backward_alt(dout, cache):
     dy_dx_hat = gamma
 
     # Beta
-    #dy_dbeta = np.ones(D, )  # Do this for clarity
+    # dy_dbeta = np.ones(D, )  # Do this for clarity
     dL_dbeta = np.sum(dL_dy, axis=0)
 
     # Gamma
     dy_dgamma = x_hat
     dL_dgamma = np.sum(dL_dy * dy_dgamma, axis=0)
 
-    Y = dx_hat
-    X = x
-
     dL_dx_hat = dL_dy * dy_dx_hat
     dL_dx_mu = np.sum(dL_dx_hat, axis=0)
     dL_dx_sigma = x_hat * np.sum(dL_dx_hat * x_hat, axis=0)
     dL_dx_x = N * dL_dx_hat
 
-    dL_dx =  dL_dx_x - dL_dx_mu - dL_dx_sigma
+    dL_dx = dL_dx_x - dL_dx_mu - dL_dx_sigma
     dL_dx = (1.0 / (N * sigma)) * dL_dx
     # dx_hat_dx = (1 / (N * sigma)) * ((1 / N) * y * np.sum(y, axis=0) - y * np.sum(y, axis=0) - 1)
 
     # dL_dx = dL_dy * dy_dx_hat * dx_hat_dx
 
     dx = dL_dx
-    dgamma = dL_dgamma
-    dbeta = dL_dbeta
+    dgamma = dL_dgamma / N
+    dbeta = dL_dbeta / N
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -770,7 +532,26 @@ def layernorm_forward(x, gamma, beta, ln_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    x = x.T
+
+    m = np.mean(x, axis=0)
+    var = np.var(x, axis=0)
+    # q = x - mean  # 1
+    # qsq = q * q  # 2
+    # var = np.sum(qsq, axis=0) / N
+
+    # Normalize
+    # Trick for division float to increase precision!!
+    vareps = var + eps
+    inden = 1.0 / np.sqrt(vareps)
+    x_hat = (x - m) * inden
+
+    # Allow distribution to shift
+    out = gamma * x_hat.T + beta
+
+    # out = out.T
+
+    cache = [x, x_hat, m, var, gamma, vareps]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -804,7 +585,88 @@ def layernorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    [x, x_hat, m, var, gamma, vareps] = cache
+
+    sigma = np.sqrt(vareps)
+    r = (x - m)
+    q = 1.0 / sigma
+
+    N, D = x.shape
+
+    dL_dy = dout
+
+    # Beta
+    # dy_dbeta = np.ones(D, )  # Do this for clarity
+    dL_dbeta = np.sum(dL_dy, axis=0)
+
+    # Gamma
+    dy_dgamma = x_hat.T
+    dL_dgamma = np.sum(dL_dy * dy_dgamma, axis=0)
+
+    # X hat
+    dy_dx_hat = gamma
+    dL_dx_hat = dL_dy * dy_dx_hat
+    dL_dx_hat = dL_dx_hat.T
+
+    # Upstream gradient: dL/dx_hat (N,D)
+    # Node variables: x_hat = r*q
+    # Local gradient: dx_hat/dq = r (N,D)
+    # Local gradient: dx_hat/dr = q (N,D)
+    dx_hat_dq = r
+    dx_hat_dr = np.ones((N, D)) * q
+
+    dL_dq = np.sum(dL_dx_hat * dx_hat_dq, axis=0)
+    dL_dr1 = dL_dx_hat * dx_hat_dr  # r1 since dL_dr is the sum of two gradients
+
+    # Upstream gradient: dL/dq (D,)
+    # Node variable: q = 1/sigma (sigma is the standard deviation)
+    # Local gradient: dq/dsigma = - 1 / sigma**2 (D,)
+    dq_dsigma = - 1.0 / sigma ** 2.0
+    dL_dsigma = dL_dq * dq_dsigma
+
+    # Upstream gradient: dL/dsigma (D,)
+    # Node variable: sigma = sqrt(var)
+    # Local gradient: dsigma/dvar = 1 / (2*sqrt(var)) (D,)
+    dsigma_dvar = 1.0 / (2.0 * np.sqrt(vareps))
+    dL_dvar = dL_dsigma * dsigma_dvar
+
+    # Upstream gradient: dL/dvar (D,)
+    # Node variable: var = z*1/N
+    # Local gradient: dvar/dz =1/N*ones(D) (D,)
+    dvar_dz = 1.0 / N * np.ones(D)
+    dL_dz = dL_dvar * dvar_dz
+
+    # Upstream gradient: dL/dz (D,)
+    # Node variable: z = r^2 dim = (N,D)
+    #                where r=x-m
+    # Local gradient: dz/dr2 = 2r (N,D)
+    dz_dr2 = 2.0 * r
+    dL_dr2 = dL_dz * dz_dr2  # (N,D)
+
+    # Upstream gradienst: dL/dr1 (N,D) and dL/dr2 (N,D)
+    # Node variable: r = x-mu (N,D)
+    # Local gradient: dr/dx1 = 1 (N,D)
+    # Local gradient: dr/dx2 = -1/N (N,D)
+    dr_dx1 = 1.0 * np.ones((N, D))
+    dr_mu = -1.0 * np.ones((N, D))
+
+    dL_dx1 = (dL_dr1 + dL_dr2) * dr_dx1
+    dL_mu = np.sum((dL_dr1 + dL_dr2) * dr_mu, axis=0)
+
+    # Upstream gradienst: dL/dmu
+    # Node variable: m = sum(x)/N (D,)
+    # Local gradient: dm/dx2 = 1/N (D,)
+    dmu_dx2 = np.ones((N, D)) * 1.0 / N
+    dL_dx2 = dL_mu * dmu_dx2
+
+    # Upstream gradient: dL/dx1 (D,N) and dL/dx1 (D,N)
+    # Node variable: x=x (N,D)
+    # Local gradient: 1
+    dL_dx = dL_dx1 + dL_dx2
+
+    dx = dL_dx.T
+    dgamma = dL_dgamma
+    dbeta = dL_dbeta
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -850,7 +712,11 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # Drop mask
+        mask = np.random.rand(*x.shape) < p
+
+        # Drop
+        out = x * mask
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -862,7 +728,7 @@ def dropout_forward(x, dropout_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        out = x * p
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -892,7 +758,7 @@ def dropout_backward(dout, cache):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        dx = dout * mask
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -936,7 +802,31 @@ def conv_forward_naive(x, w, b, conv_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, _, H, W = x.shape
+    F, C, HH, WW = w.shape
+
+    pad, stride = conv_param['pad'], conv_param['stride']
+
+    H_prime = int(1 + (H + 2 * pad - HH) / stride)
+    W_prime = int(1 + (W + 2 * pad - WW) / stride)
+
+    out = np.zeros((N, F, H_prime, W_prime))
+
+    npad = ((0, 0), (0, 0), (1, 1), (1, 1))  # pad around x's 3rd and 4th dimensions
+    x_pad = np.pad(x, pad_width=npad, mode='constant', constant_values=0)
+
+    for n in range(N):
+        for f in range(F):
+            for h_stride in range(H_prime):
+                for w_stride in range(W_prime):
+                    x_region = x_pad[
+                               n,
+                               :,
+                               h_stride * stride:h_stride * stride + HH,
+                               w_stride * stride:w_stride * stride + WW
+                               ]
+
+                    out[n, f, h_stride, w_stride] = np.sum(w[f] * x_region) + b[f]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -963,8 +853,31 @@ def conv_backward_naive(dout, cache):
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    x, w, b, conv_param = cache
 
-    pass
+    N, C, H, W = np.shape(x)
+    F, _, HH, WW = w.shape
+    stride = conv_param['stride']
+    pad = conv_param['pad']
+    _, _, H_next, W_next = dout.shape
+
+    npad = ((0, 0), (0, 0), (1, 1), (1, 1))  # pad around x's 3rd and 4th dimensions
+    padded_x = np.pad(x, pad_width=npad, mode='constant', constant_values=0)
+
+    db = np.sum(dout, axis=(0, 2, 3))
+    dw = np.zeros(w.shape)
+    dpadded_x = np.zeros(padded_x.shape)
+
+    for n in range(N):
+        for f in range(F):
+            for h_stride in range(H_next):
+                for v_stride in range(W_next):
+                    dw[f] += padded_x[n, :,
+                             h_stride * stride: h_stride * stride + HH,
+                             v_stride * stride: v_stride * stride + WW] * dout[n, f, h_stride, v_stride]
+                    dpadded_x[n, :, h_stride * stride: h_stride * stride + HH,
+                    v_stride * stride: v_stride * stride + WW] += w[f] * dout[n, f, h_stride, v_stride]
+    dx = dpadded_x[:, :, 1:-1, 1:-1]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -999,13 +912,32 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+    N, C, H, W = x.shape
+    vertical_strides = int(1 + (H - pool_height) / stride)
+    horizontal_strides = int(1 + (W - pool_width) / stride)
+
+    out = np.zeros((N, C, vertical_strides, horizontal_strides))
+    switches = {}
+
+    for n in range(N):
+        for c in range(C):
+            for i in range(vertical_strides):
+                for j in range(horizontal_strides):
+                    region_of_x = x[n,
+                                  c,
+                                  i * stride: i * stride + pool_height,
+                                  j * stride: j * stride + pool_width]
+                    out[n, c, i, j] = np.max(region_of_x)
+                    switches[n, c, i, j] = np.unravel_index(region_of_x.argmax(), region_of_x.shape)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
-    cache = (x, pool_param)
+    cache = (x, pool_param, switches)
     return out, cache
 
 
@@ -1025,7 +957,24 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    x, pool_param, switches = cache
+
+    pool_height = pool_param['pool_height']
+    pool_width = pool_param['pool_width']
+    stride = pool_param['stride']
+    N, C, H, W = x.shape
+    _, _, HH, WW = dout.shape
+
+    dx = np.zeros(x.shape)
+
+    for n in range(N):
+        for c in range(C):
+            for i in range(HH):
+                for j in range(WW):
+                    local_index_of_max = switches[n, c, i, j]
+                    i_of_max = local_index_of_max[0] + i * stride
+                    j_of_max = local_index_of_max[1] + j * stride
+                    dx[n, c, i_of_max, j_of_max] += dout[n, c, i, j]
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -1066,7 +1015,15 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = np.shape(x)
+
+    # https://www.reddit.com/r/cs231n/comments/443y2g/hints_for_a2 has hint about reshaping.
+    # To use batchnorm_forward which expects dimensions of (N',D'), treat C as D'
+    # and N*H*W as N'. Need to order values correctly with transpose.
+
+    x_flattened = x.transpose(0, 2, 3, 1).reshape(-1, C)  # dim=(N*H*W, C)
+    out_flattened, cache = batchnorm_forward(x_flattened, gamma, beta, bn_param)  # dim=(N*H*W, C)
+    out = out_flattened.reshape(N, H, W, C).transpose(0, 3, 1, 2)  # dim=N,C,H,W
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -1099,7 +1056,11 @@ def spatial_batchnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = np.shape(dout)
+
+    dout_flattened = dout.transpose(0, 2, 3, 1).reshape(-1, C)
+    dx_flattened, dgamma, dbeta = batchnorm_backward(dout_flattened, cache)
+    dx = dx_flattened.reshape(N, H, W, C).transpose(0, 3, 1, 2)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -1140,9 +1101,40 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = np.shape(x)
 
-    # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
+    # https://www.reddit.com/r/cs231n/comments/443y2g/hints_for_a2 has hint about reshaping.
+    # To use batchnorm_forward which expects dimensions of (N',D'), treat C as D'
+    # and N*H*W as N'. Need to order values correctly with transpose.
+
+    group_width = int(C / G)
+
+    if group_width != C / G:
+        print("G needs to be a divisor of C")
+        raise
+
+    out = np.zeros((N, C, H, W))
+    cache = []
+
+    x_flattened = x.transpose(0, 2, 3, 1).reshape(-1, C)  # dim=(N*H*W, C)
+    gamma_flatten = gamma.transpose(0, 2, 3, 1).reshape(-1, C)  #
+    beta_flatten = beta.transpose(0, 2, 3, 1).reshape(-1, C)  #
+
+    for g in range(G):
+        x_flattened_group = x_flattened[:, g * group_width:(g + 1) * group_width]
+        gamma_group = gamma_flatten[:, g * group_width:(g + 1) * group_width]
+        beta_group = beta_flatten[:, g * group_width:(g + 1) * group_width]
+
+        out_flattened_group, cache_group = layernorm_forward(x_flattened_group, gamma_group, beta_group,
+                                                             gn_param)  # dim=(N*H*W, C)
+
+        out[:, g * group_width:(g + 1) * group_width, :, :] = out_flattened_group.reshape(N, H, W,
+                                                                                          group_width).transpose(0, 3,
+                                                                                                                 1, 2)
+
+        cache.append(cache_group)
+
+        # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -1169,50 +1161,34 @@ def spatial_groupnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    N, C, H, W = np.shape(dout)
+
+    dx = np.zeros((N, C, H, W))
+    dgamma = np.zeros((1, C, 1, 1))
+    dbeta = np.zeros((1, C, 1, 1))
+
+    G = len(cache)
+    group_width = int(C / G)
+
+    dout_flattened = dout.transpose(0, 2, 3, 1).reshape(-1, C)  # dim=(N*H*W, C)
+
+    for g in range(G):
+        dout_flattened_group = dout_flattened[:, g * group_width:(g + 1) * group_width]
+
+        dx_group, dgamma_group, dbeta_group = layernorm_backward(dout_flattened_group, cache[g])  # dim=(N*H*W, C)
+
+        dgamma[:, g * group_width:(g + 1) * group_width, :, :] = dgamma_group.reshape(1, 1, 1,
+                                                                                      group_width).transpose(0, 3,
+                                                                                                             1, 2)
+        dbeta[:, g * group_width:(g + 1) * group_width, :, :] = dbeta_group.reshape(1, 1, 1,
+                                                                                      group_width).transpose(0, 3,
+                                                                                                             1, 2)
+        dx[:, g * group_width:(g + 1) * group_width, :, :] = dx_group.reshape(N, H, W,
+                                                                                          group_width).transpose(0, 3,
+                                                                                                                 1, 2)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
     return dx, dgamma, dbeta
-
-# array([[-0.02960701, -0.04014999, -0.0137734 , ..., -0.01035652,
-#         -0.06595021,  0.02386322],
-#        [ 0.03417437, -0.00763451, -0.01391406, ...,  0.01649333,
-#          0.00942428,  0.0223573 ],
-#        [-0.01341895,  0.05564852,  0.02808692, ..., -0.0048158 ,
-#          0.02397009, -0.01430126],
-#        ...,
-#        [-0.02294035,  0.00099297, -0.0082513 , ...,  0.01252861,
-#         -0.00837394,  0.01874283],
-#        [-0.00735982, -0.0200003 ,  0.01613967, ..., -0.00858063,
-#          0.00171868, -0.0560393 ],
-#        [-0.00327935, -0.02256672, -0.01453427, ...,  0.01332806,
-#          0.01768391, -0.00632291]])
-# array([[-0.02959813, -0.04013853, -0.0137686 , ..., -0.01035517,
-#         -0.06593016,  0.02385825],
-#        [ 0.03416299, -0.00763265, -0.01390921, ...,  0.0164905 ,
-#          0.00942333,  0.02235497],
-#        [-0.0134143 ,  0.05563422,  0.02807613, ..., -0.0048141 ,
-#          0.02396556, -0.01430169],
-#        ...,
-#        [-0.02293491,  0.00099238, -0.00824874, ...,  0.01252725,
-#         -0.00837345,  0.01873625],
-#        [-0.00735852, -0.01999094,  0.0161346 , ..., -0.00857972,
-#          0.0017192 , -0.05602468],
-#        [-0.00327846, -0.02256088, -0.01453091, ...,  0.01332299,
-#          0.01767755, -0.00632105]])
-# array([[-8.88123495e-06, -1.14577644e-05, -4.79527212e-06, ...,
-#         -1.34837530e-06, -2.00468161e-05,  4.96476793e-06],
-#        [ 1.13792874e-05, -1.86045111e-06, -4.84949484e-06, ...,
-#          2.82801311e-06,  9.50877344e-07,  2.33566612e-06],
-#        [-4.65370145e-06,  1.42937617e-05,  1.07925459e-05, ...,
-#         -1.70069138e-06,  4.53215983e-06,  4.23613115e-07],
-#        ...,
-#        [-5.43791235e-06,  5.84137396e-07, -2.55814148e-06, ...,
-#          1.36110385e-06, -4.95509176e-07,  6.57652126e-06],
-#        [-1.30112940e-06, -9.35723288e-06,  5.07196005e-06, ...,
-#         -9.07293422e-07, -5.24505621e-07, -1.46220191e-05],
-#        [-8.83003612e-07, -5.83173014e-06, -3.35995805e-06, ...,
-#          5.07807911e-06,  6.35971786e-06, -1.85778139e-06]])

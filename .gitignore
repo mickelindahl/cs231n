@@ -3,3 +3,6 @@
 .ipynb_checkpoints
 cifar-10-batches-py
 __pycache__
+build/
+im2col_cython.c*
+results/

@@ -6,11 +6,13 @@ from builtins import range
 from builtins import object
 import os
 import pickle as pickle
-
+import pprint
 import numpy as np
+import sys
 
 from cs231n import optim
 
+pp=pprint.pprint
 
 class Solver(object):
     """
@@ -183,11 +185,17 @@ class Solver(object):
 
         # Perform a parameter update
         for p, w in self.model.params.items():
-            dw = grads[p]
-            config = self.optim_configs[p]
-            next_w, next_config = self.update_rule(w, dw, config)
-            self.model.params[p] = next_w
-            self.optim_configs[p] = next_config
+            try:
+                dw = grads[p]
+                config = self.optim_configs[p]
+                next_w, next_config = self.update_rule(w, dw, config)
+                self.model.params[p] = next_w
+                self.optim_configs[p] = next_config
+            except:
+                e = sys.exc_info()[0]
+                pp(list(grads.keys()))
+                raise e
+
 
     def _save_checkpoint(self):
         if self.checkpoint_name is None:
