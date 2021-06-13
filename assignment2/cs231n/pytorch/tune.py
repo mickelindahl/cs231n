@@ -1,5 +1,5 @@
 import torch
-import cs231n.pytorch.experiment as e
+import cs231n.pytorch.network as n
 from ax.service.managed_loop import optimize
 from ax import Experiment, save, load
 import json
@@ -32,34 +32,47 @@ class Tune:
         self.verbose = verbose
         self.data = []
 
-        self.model=None
-        self.experiment=None
+        self.model = None
+        self.experiment = None
+        self.best_history = None
+        self.best_acc = None
 
         self.total_trials = total_trials
 
-        self.path_result = '{}/{}/tune'.format(self.lab.base_path_results, self.model_class.get_name())
+        self.path_result = '{}/{}/tune'.format(self.lab.base_path_torch, self.model_class.get_name())
 
         Path(self.path_result).mkdir(parents=True, exist_ok=True)
 
         torch.manual_seed(random_seed)
 
     def train_evaluate(self, parameters):
-        experiment = e.Experiment(
+
+        network = n.Network(
             self.model_class,
             self.optimizer_class,
             parameters,
             self.lab,
-            experiment_name='tune/trial_{}'.format(self.trial),
+            run_name='tune/trial_{}'.format(self.trial),
             epochs=1,
             verbose=False,
+            best_history=self.best_history
         )
 
         self.trial += 1
 
         # experiment.load_latest_epoch()
-        experiment.train()
+        network.train()
 
-        acc = experiment.check_accuracy()
+        acc = network.check_accuracy()
+
+        print(self.best_acc, acc)
+
+        if not self.best_history or self.best_acc < acc:
+
+            print('Hej!!!!')
+
+            self.best_acc = acc
+            self.best_history = network.history
 
         if self.verbose:
             print('Accuracy:', acc)
@@ -76,11 +89,15 @@ class Tune:
     def load(self):
         best_parameters_file = '{}/best_parameters.json'.format(self.path_result)
         with open(best_parameters_file, "r") as f:
-            best_parameters = json.load(f)
+           best_parameters = json.load(f)
 
         values_file = '{}/values.json'.format(self.path_result)
         with open(values_file, "r") as f:
             values = json.load(f)
+
+        data_file = '{}/data.json'.format(self.path_result)
+        with open(data_file, "r") as f:
+            self.data =  json.load(f)
 
         experiment_file = '{}/experiment.json'.format(self.path_result)
 
@@ -125,23 +142,9 @@ class Tune:
 
         self.model = model
         self.experiment = experiment
-
-        # Attach model data in order to be able to recreate mode
-        # experiment.data_by_trial
-        # experiment.fetch_data()
-        # experiment.lookup_data_for_trial or experiment.lookup_data_for_ts
-
         self.save(best_parameters, values, experiment)
 
         print('Tune done')
-
-        # self.save({
-        #     'best_parameters': best_parameters,
-        #     'values': values,
-        #     'experiment': experiment,
-        #     'model': model
-        # })
-
         print('Tune data saved')
 
         print(best_parameters, values, experiment, model)

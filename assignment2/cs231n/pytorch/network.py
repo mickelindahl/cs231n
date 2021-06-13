@@ -8,19 +8,23 @@ import json
 import os
 import pprint
 
+from torch.utils.tensorboard import SummaryWriter
+
+# default `log_dir` is "runs" - we'll be more specific here
 pp = pprint.pprint
 
 
-class Experiment:
+class Network:
     def __init__(
             self,
             model_class,
             optimizer_class,
             params,
             lab,
-            experiment_name='default',
+            run_name='default',
             epochs=1,
             verbose=False,
+            best_history=None
     ):
         """
         Inputs:
@@ -36,10 +40,9 @@ class Experiment:
         self.model = model_class(**params).to(device=lab.device)
         self.best_model = model_class(**params).to(device=lab.device)
 
-
-        opt_params={}
+        opt_params = {}
         for key, val in params.items():
-            if key in ['lr', 'moment' ]:
+            if key in ['lr', 'moment']:
                 opt_params[key] = val
 
         self.optimizer = optimizer_class(self.model.parameters(), **opt_params)
@@ -52,12 +55,24 @@ class Experiment:
         self.dtype = lab.dtype
         self.verbose = verbose
 
-        self.path_result = '{}/{}/{}'.format(lab.base_path_results, self.model.get_name(), experiment_name)
+        self.path_result = '{}/{}/{}'.format(lab.base_path_torch,
+                                             self.model.get_name(),
+                                             run_name)
+        self.path_tensorboard = '{}/{}/{}'.format(lab.base_path_tensorboard,
+                                                  self.model.get_name(),
+                                                  run_name)
+
+        self.path_model = '{}/{}/{}'.format(lab.base_path_tensorboard,
+                                            self.model.get_name(),
+                                            'model')
+        self.best_history = best_history
 
         Path(self.path_result).mkdir(parents=True, exist_ok=True)
+        Path(self.path_tensorboard).mkdir(parents=True, exist_ok=True)
 
         self.history = History()
 
+        self.run_name = run_name
         self.best_model_state = deepcopy(self.model.state_dict())
         self.best_accuracy = None
         self.best_epoch = None
@@ -65,6 +80,14 @@ class Experiment:
         self.epoch = 0
         self.iteration = 0
         self.epochs = epochs
+
+        writer = SummaryWriter(self.path_model)
+
+        dataiter = iter(lab.loader['train'])
+        images, labels = dataiter.next()
+
+        writer.add_graph(self.model, images)
+        writer.close()
 
     def use_model(self, *args, **kwargs):
 
@@ -179,8 +202,10 @@ class Experiment:
         epochs.sort(key=lambda x: int(x))
 
         if not epochs:
+            print('No epochs to load')
             return
 
+        print('loading epoch', epochs[-1])
         self.load_epoch(epochs[-1])
 
     def train(
@@ -197,6 +222,8 @@ class Experiment:
 
         Returns: Nothing, but prints model accuracies during training.
         """
+
+        writer = None
 
         loader_train = self.loader['train']
 
@@ -240,15 +267,16 @@ class Experiment:
 
                     if self.verbose: print('Iteration %d, loss = %.4f' % (self.iteration, loss.item()))
                     acc_val = self.check_accuracy(check='validation')
+                    acc_train = float(num_correct) / num_samples
 
                     if not self.best_accuracy or self.best_accuracy < acc_val:
+                        # print(self.best_accuracy,acc_val)
+
                         self.best_accuracy = acc_val
                         self.best_epoch = self.epoch
                         self.best_iteration = self.iteration
                         self.best_model_state = deepcopy(self.model.state_dict())
                         self.best_model.load_state_dict(self.best_model_state)
-
-                    acc_train = float(num_correct) / num_samples
 
                     self.history.add((self.iteration, float(loss.cpu().detach().numpy())),
                                      data_point_type='accuracy_iteration_loss')
@@ -260,6 +288,31 @@ class Experiment:
             self.epoch = e + 1
 
             self._save_checkpoint()
+
+        current = self.history.get_accuracy_per_iteration_validation()
+        current_train = self.history.get_accuracy_per_iteration_train()
+        best = current
+        if self.best_history:
+            best = self.best_history.get_accuracy_per_iteration_validation()
+
+            # print(self.iteration, t)
+            # pp(best)
+
+        iterations = list(current.keys())
+        iterations.sort()
+
+        if best.get(iterations[-1]) <= current.get(iterations[-1]):
+
+            for iteration in iterations:
+
+                if not writer:
+                    writer = SummaryWriter(self.path_tensorboard)
+
+                writer.add_scalar('Accuracy/train', current_train.get(iteration), iteration)
+                writer.add_scalar('Accuracy/validation', current.get(iteration), iteration)
+
+        if writer:
+            writer.close()
 
     def _save_checkpoint(self):
         if self.path_result is None:

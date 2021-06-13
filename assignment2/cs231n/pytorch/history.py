@@ -15,6 +15,12 @@ class History:
     def add(self, data_point, data_point_type='accuracy_iteration_loss'):
         self.data[data_point_type].append(data_point)
 
+    def get_accuracy_per_iteration_train(self):
+        return dict(self.data['accuracy_iteration_train'])
+
+    def get_accuracy_per_iteration_validation(self):
+        return dict(self.data['accuracy_iteration_validation'])
+
     def show_iteration(self):
 
         plt.subplot(2, 1, 1)
